@@ -1,0 +1,120 @@
+# Area 51 (PC/PS2/Xbox, 2005), script v0.2
+# extracts most of the MUSIC_*.AUDIOPKG:
+# - streams have no names
+# - each ID has some data which is also extracted
+# 
+# script for QuickBMS http://quickbms.aluigi.org
+# written by AlphaTwentyThree of Zenhax 05/2018
+
+get BNAME basename
+getDstring VER 0x10
+getDstring PLATFORM 0x10
+if PLATFORM == "PlayStation II"
+   set EXT "mib"
+   set BIAS 0
+elif PLATFORM == "Windows"
+   set EXT "mp3"
+   set BIAS 0x1b0
+elif PLATFORM == "Xbox"
+   set EXT "dat"
+   set BIAS 0
+endif
+getDstring INTERNAL_NAME 0x10
+getDstring DATE 0x10
+goto 0xc0
+get NAMES long
+get NAMES long
+get SECTION1 long
+get SECTION_NAMES long
+goto 0xd4
+get SECTION2 long
+xmath ENTRIES "SECTION2 / 4"
+goto 0xe4
+get FILES long
+get BIAS long
+goto 0xf0
+get VAR_FILES long # number of different files?
+set NAME_OFF 0x110
+goto NAME_OFF
+for i = 1 <= NAMES
+   get NAME string
+next i
+xmath MYOFF "NAME_OFF + SECTION_NAMES"
+goto MYOFF
+
+for i = 1 <= ENTRIES
+   get CRC long
+next i
+savepos MYOFF
+for i = 1 <= NAMES # 0xc
+   get NAMEPOS short
+   get IDX short # name id
+   get ZERO long
+   savepos MYOFF
+   xmath GETNAME "NAMEPOS + NAME_OFF"
+   goto GETNAME
+   get NAME string
+   putArray 0 IDX NAME
+   goto MYOFF
+next i
+
+savepos MYOFF
+xmath GETSECTION_OFF "MYOFF + NAMES * 4"
+
+for i = 0 < NAMES # i = IDX
+   get OFFSET long
+   savepos MYOFF
+   xmath k "i + 1"
+   if k != NAMES
+      get SIZE long
+   else
+      set SIZE SECTION1
+   endif
+   math SIZE -= OFFSET
+   xmath OFFSET "OFF_SECTION + GETSECTION_OFF"
+   getArray NAME 0 i
+   string NAME p= "%s/ID%i_%s" BNAME i NAME
+   log NAME OFFSET SIZE
+   goto MYOFF
+next i
+
+savepos MYOFF
+math MYOFF += SECTION1
+goto MYOFF
+
+get TEST short   # there can be a number of zeros here
+for            # just a workaround
+   savepos MYOFF
+   get TEST short
+   if TEST == 0
+      break
+   endif
+next
+goto MYOFF
+for i = 0 < BIAS
+   get DUMMY long
+next i
+get BNAME basename
+#savepos MYOFF
+#print "%MYOFF%"
+#cleanexit
+
+for i = 1 <= FILES
+   get ZERO long
+   get OFFSET long
+   get SIZE long
+   get UNK long # 0xffffffff
+   get UNK long
+   get ZERO long
+   get UNK long # ID???
+   get FREQ long
+   getDstring ZERO 8
+   string NAME p= "%s/%i_%s_%i.%s" BNAME UNK BNAME i EXT
+   if OFFSET != OLDOFFSET || i = 1 # duplicate files are omitted
+      math OFFSET += BIAS
+      math SIZE -= BIAS
+      log NAME OFFSET SIZE
+      set OLDOFFSET OFFSET
+   endif
+   set OLDOFFSET OFFSET
+next i
