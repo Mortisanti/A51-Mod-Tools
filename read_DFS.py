@@ -11,7 +11,7 @@ import subprocess
 
 # quickbms.exe -l "F:/Users/Michael/Documents/Programming/Python/A51/scripts_A51/SFDX.bms" "F:/Users/Michael/Documents/Programming/Python/A51/archives/STRINGS.DFS" > test.txt
 
-quickbms = 'quickbms.exe'
+quickbms = 'data/quickbms.exe'
 options = '-l'
 script = 'scripts_A51/SFDX.bms'
 archive = 'STRINGS'
